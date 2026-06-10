@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [feature/**]
+
+jobs:
+  lint-typecheck:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: ESLint (log)
+        run: npm run lint
+
+      - name: ESLint (HTML report)
+        run: npx eslint --format html --output-file reports/eslint-report.html
+        if: always()
+
+      - name: Upload lint report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-report
+          path: reports/eslint-report.html
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --ci --coverage
+
+      - name: Upload test & coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-coverage-report
+          path: |
+            reports/test-report.html
+            coverage/
