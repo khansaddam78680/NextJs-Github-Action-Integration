@@ -19,21 +19,36 @@ jobs:
       - run: npm ci
 
       - name: TypeScript type check
+        id: typecheck
         run: npx tsc --noEmit
+        continue-on-error: true
 
-      - name: ESLint (log)
+      - name: ESLint
+        id: eslint
         run: npm run lint
+        continue-on-error: true
 
-      - name: ESLint (HTML report)
-        run: npx eslint --format html --output-file reports/eslint-report.html
+      - name: Write job summary
         if: always()
+        run: |
+          echo "## Lint & Type Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
+            echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| TypeScript | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.eslint.outcome }}" == "success" ]; then
+            echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| ESLint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
 
-      - name: Upload lint report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lint-report
-          path: reports/eslint-report.html
+      - name: Fail if any check failed
+        if: steps.typecheck.outcome == 'failure' || steps.eslint.outcome == 'failure'
+        run: exit 1
 
   unit-tests:
     name: Unit Tests
@@ -50,12 +65,5 @@ jobs:
 
       - name: Run unit tests
         run: npm test -- --ci --coverage
-
-      - name: Upload test & coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-coverage-report
-          path: |
-            reports/test-report.html
-            coverage/
+        env:
+          GITHUB_ACTIONS: true

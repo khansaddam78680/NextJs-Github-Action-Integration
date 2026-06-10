@@ -8,18 +8,12 @@ const config: Config = {
   testMatch: ['**/__tests__/**/*.test.ts'],
   reporters: [
     'default',
-    ['jest-html-reporter', {
-      outputPath: 'reports/test-report.html',
-      pageTitle: 'Unit Test Report',
-      includeFailureMsg: true,
-      includeSuiteFailure: true,
-    }],
+    'jest-github-actions-reporter',
   ],
   collectCoverageFrom: [
     'app/api/**/*.ts',
     'app/lib/**/*.ts',
   ],
-  coverageReporters: ['text', 'html'],
 };
 
 export default createJestConfig(config);
