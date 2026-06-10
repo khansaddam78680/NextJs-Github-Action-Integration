@@ -1,5 +1,8 @@
 import type { SkillCategory, Project, Achievement, WorkExperience, CareerEvent, Stat } from './types';
 
+// intentional type error to fail CI
+const _typeCheckFail: number = "this should be a number";
+
 export const personalInfo = {
   name: 'John Doe',
   title: 'Full Stack Developer',
