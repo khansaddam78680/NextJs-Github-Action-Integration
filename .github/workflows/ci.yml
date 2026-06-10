@@ -1,8 +1,8 @@
-name: CI
+name: CI — Tests
 
 on:
   push:
-    branches: [feature/test]
+    branches-ignore: [main]
 
 jobs:
   lint-typecheck:

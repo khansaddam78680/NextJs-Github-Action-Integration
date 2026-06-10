@@ -1,0 +1,150 @@
+name: Preview Deploy
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+jobs:
+  lint-typecheck:
+    name: Lint & Type Check
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript type check
+        id: typecheck
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: ESLint
+        id: eslint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Lint & Type Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
+            echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| TypeScript | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.eslint.outcome }}" == "success" ]; then
+            echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| ESLint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if any check failed
+        if: steps.typecheck.outcome == 'failure' || steps.eslint.outcome == 'failure'
+        run: exit 1
+
+  unit-tests:
+    name: Unit Tests
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run unit tests
+        run: npm test -- --ci --coverage
+        env:
+          GITHUB_ACTIONS: true
+
+  preview-deploy:
+    name: Deploy Preview
+    if: github.event.action != 'closed'
+    needs: [lint-typecheck, unit-tests]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy preview to Vercel
+        id: deploy
+        run: |
+          url=$(vercel --token=${{ secrets.VERCEL_TOKEN }} --yes 2>/dev/null)
+          echo "url=$url" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## 🚀 Preview Deployment Ready',
+                '',
+                '| | |',
+                '|---|---|',
+                `| **URL** | ${{ steps.deploy.outputs.url }} |`,
+                `| **Commit** | \`${{ github.sha }}\` |`,
+                `| **Branch** | \`${{ github.head_ref }}\` |`,
+              ].join('\n')
+            })
+
+  destroy-preview:
+    name: Destroy Preview
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Vercel preview deployments for this branch
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          echo "Fetching preview deployments for branch: $BRANCH"
+
+          DEPLOYMENTS=$(curl -s \
+            "https://api.vercel.com/v6/deployments?projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitRef=$BRANCH&limit=20" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}")
+
+          UIDS=$(echo $DEPLOYMENTS | jq -r '.deployments[].uid')
+
+          if [ -z "$UIDS" ]; then
+            echo "No preview deployments found for branch: $BRANCH"
+          else
+            echo "$UIDS" | while read uid; do
+              echo "Deleting deployment: $uid"
+              curl -s -X DELETE \
+                "https://api.vercel.com/v13/deployments/$uid" \
+                -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}"
+            done
+            echo "All preview deployments deleted."
+          fi
