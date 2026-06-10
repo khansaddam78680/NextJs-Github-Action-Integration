@@ -17,7 +17,7 @@ describe('POST /api/contact', () => {
       subject: 'Hello',
       message: 'Test message',
     }));
-    expect(res.status).toBe(201); // intentional failure to test CI
+    expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.message).toMatch(/received/i);
   });
