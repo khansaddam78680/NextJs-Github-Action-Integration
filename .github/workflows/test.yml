@@ -40,14 +40,14 @@ jobs:
           echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
-            echo "| TypeScript | PASS |" >> $GITHUB_STEP_SUMMARY
+            echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| TypeScript | FAIL |" >> $GITHUB_STEP_SUMMARY
+            echo "| TypeScript | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
           if [ "${{ steps.eslint.outcome }}" == "success" ]; then
-            echo "| ESLint | PASS |" >> $GITHUB_STEP_SUMMARY
+            echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| ESLint | FAIL |" >> $GITHUB_STEP_SUMMARY
+            echo "| ESLint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Fail if any check failed
@@ -89,10 +89,12 @@ jobs:
               '| Suite | Passed | Failed | Status |',
               '|-------|--------|--------|--------|'
             ];
-            r.testResults.filter(s => s && s.testFilePath).forEach(s => {
-              const name = path.basename(s.testFilePath);
-              const status = s.numFailingTests > 0 ? 'FAIL' : 'PASS';
-              lines.push('| ' + name + ' | ' + s.numPassingTests + ' | ' + s.numFailingTests + ' | ' + status + ' |');
+            r.testResults.filter(s => s && s.name).forEach(s => {
+              const name = path.basename(s.name);
+              const passed = s.assertionResults.filter(a => a.status === 'passed').length;
+              const failed = s.assertionResults.filter(a => a.status === 'failed').length;
+              const status = s.status === 'failed' ? '❌ Failed' : '✅ Passed';
+              lines.push('| ' + name + ' | ' + passed + ' | ' + failed + ' | ' + status + ' |');
             });
             lines.push('');
             lines.push('**Total: ' + r.numPassedTests + ' passed, ' + r.numFailedTests + ' failed**');
