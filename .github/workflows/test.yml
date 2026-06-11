@@ -1,34 +1,38 @@
-name: CI — Tests
+name: Perform Linting, Type Check and Unit Test
 
 on:
   push:
-    branches-ignore: [main]
+    branches: "feature/**"
+    #branches-ignore: [main]
 
 jobs:
-  lint-typecheck:
-    name: Lint & Type Check
+  lint_and_type_check:
+    name: Perform Linting and Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - name: Setup NodeJs
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-      - name: TypeScript type check
+      - name: Run TypeScript type check
         id: typecheck
         run: npx tsc --noEmit
         continue-on-error: true
 
-      - name: ESLint
+      - name: Run Lint check
         id: eslint
         run: npm run lint
         continue-on-error: true
 
-      - name: Write job summary
+      - name: Write test job summary
         if: always()
         run: |
           echo "## Lint & Type Check Results" >> $GITHUB_STEP_SUMMARY
@@ -50,20 +54,20 @@ jobs:
         if: steps.typecheck.outcome == 'failure' || steps.eslint.outcome == 'failure'
         run: exit 1
 
-  unit-tests:
-    name: Unit Tests
+  unit_tests:
+    name: Perform Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run unit tests
         run: npm test -- --ci --coverage
-        env:
-          GITHUB_ACTIONS: true
