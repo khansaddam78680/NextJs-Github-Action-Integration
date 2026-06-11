@@ -70,4 +70,33 @@ jobs:
         run: npm ci
 
       - name: Run unit tests
-        run: npm test -- --ci --coverage
+        id: tests
+        run: npm test -- --ci --coverage --json --outputFile=jest-results.json
+        continue-on-error: true
+        env:
+          GITHUB_ACTIONS: true
+
+      - name: Write unit test job summary
+        if: always()
+        run: |
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const r = require('./jest-results.json');
+            const lines = [
+              '| Suite | Passed | Failed | Status |',
+              '|-------|--------|--------|--------|'
+            ];
+            r.testResults.forEach(s => {
+              const name = s.testFilePath.split(/[\\/]/).pop();
+              const status = s.numFailingTests > 0 ? '❌' : '✅';
+              lines.push(\`| \${name} | \${s.numPassingTests} | \${s.numFailingTests} | \${status} |\`);
+            });
+            lines.push('');
+            lines.push(\`**Total: \${r.numPassedTests} passed, \${r.numFailedTests} failed**\`);
+            console.log(lines.join('\n'));
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if unit tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
