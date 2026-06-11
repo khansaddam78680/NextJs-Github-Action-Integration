@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup NodeJs
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
@@ -32,7 +32,7 @@ jobs:
         run: npm run lint
         continue-on-error: true
 
-      - name: Write test job summary
+      - name: Write lint job summary
         if: always()
         run: |
           echo "## Lint & Type Check Results" >> $GITHUB_STEP_SUMMARY
@@ -40,14 +40,14 @@ jobs:
           echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
           if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
-            echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            echo "| TypeScript | PASS |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| TypeScript | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            echo "| TypeScript | FAIL |" >> $GITHUB_STEP_SUMMARY
           fi
           if [ "${{ steps.eslint.outcome }}" == "success" ]; then
-            echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+            echo "| ESLint | PASS |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| ESLint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+            echo "| ESLint | FAIL |" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Fail if any check failed
@@ -59,9 +59,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v6
+      - name: Setup NodeJs
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
@@ -82,18 +83,19 @@ jobs:
           echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           node -e "
+            const path = require('path');
             const r = require('./jest-results.json');
             const lines = [
               '| Suite | Passed | Failed | Status |',
               '|-------|--------|--------|--------|'
             ];
-            r.testResults.forEach(s => {
-              const name = s.testFilePath.split(/[\\/]/).pop();
-              const status = s.numFailingTests > 0 ? '❌' : '✅';
-              lines.push(\`| \${name} | \${s.numPassingTests} | \${s.numFailingTests} | \${status} |\`);
+            r.testResults.filter(s => s && s.testFilePath).forEach(s => {
+              const name = path.basename(s.testFilePath);
+              const status = s.numFailingTests > 0 ? 'FAIL' : 'PASS';
+              lines.push('| ' + name + ' | ' + s.numPassingTests + ' | ' + s.numFailingTests + ' | ' + status + ' |');
             });
             lines.push('');
-            lines.push(\`**Total: \${r.numPassedTests} passed, \${r.numFailedTests} failed**\`);
+            lines.push('**Total: ' + r.numPassedTests + ' passed, ' + r.numFailedTests + ' failed**');
             console.log(lines.join('\n'));
           " >> $GITHUB_STEP_SUMMARY
 
