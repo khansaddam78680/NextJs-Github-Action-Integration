@@ -1,0 +1,114 @@
+name: Perform tests
+
+on:
+  push:
+    branches: "feature/**"
+    #branches-ignore: [main]
+
+  #To use this workflow in different action we need to put workflow_call
+  workflow_call: {}
+
+permissions:
+  contents: read #Allows the workflow to read the repository contents.
+  actions: read # Reads information about github actions resources.
+
+
+jobs:
+  lint_and_type_check:
+    name: Perform Linting and Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup NodeJs
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript type check
+        id: typecheck
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+      - name: Run Lint check
+        id: eslint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Write lint job summary
+        if: always()
+        run: |
+          echo "## Lint & Type Check Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.typecheck.outcome }}" == "success" ]; then
+            echo "| TypeScript | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| TypeScript | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.eslint.outcome }}" == "success" ]; then
+            echo "| ESLint | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| ESLint | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if any check failed
+        if: steps.typecheck.outcome == 'failure' || steps.eslint.outcome == 'failure'
+        run: exit 1
+
+  unit_tests:
+    name: Perform Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup NodeJs
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests
+        id: tests
+        run: npm test -- --ci --coverage --json --outputFile=jest-results.json
+        continue-on-error: true
+        env:
+          GITHUB_ACTIONS: true
+
+      - name: Write unit test job summary
+        if: always()
+        run: |
+          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          node -e "
+            const path = require('path');
+            const r = require('./jest-results.json');
+            const lines = [
+              '| Suite | Passed | Failed | Status |',
+              '|-------|--------|--------|--------|'
+            ];
+            r.testResults.filter(s => s && s.name).forEach(s => {
+              const name = path.basename(s.name);
+              const passed = s.assertionResults.filter(a => a.status === 'passed').length;
+              const failed = s.assertionResults.filter(a => a.status === 'failed').length;
+              const status = s.status === 'failed' ? '❌ Failed' : '✅ Passed';
+              lines.push('| ' + name + ' | ' + passed + ' | ' + failed + ' | ' + status + ' |');
+            });
+            lines.push('');
+            lines.push('**Total: ' + r.numPassedTests + ' passed, ' + r.numFailedTests + ' failed**');
+            console.log(lines.join('\n'));
+          " >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if unit tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
