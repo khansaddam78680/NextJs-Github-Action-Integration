@@ -56,9 +56,11 @@ jobs:
       - name: Deploy preview to Vercel
         id: deploy
         run: |
+          set -euo pipefail
           url=$(vercel deploy \
             --prebuilt \
-            --token=${{ secrets.VERCEL_TOKEN }})
+            --token=${{ secrets.VERCEL_TOKEN }} \
+            --yes)
 
           echo "preview_url=$url" >> $GITHUB_OUTPUT
 
