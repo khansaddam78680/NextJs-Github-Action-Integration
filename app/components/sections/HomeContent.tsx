@@ -114,7 +114,7 @@ export default function HomeContent() {
                   variant="body1"
                   sx={{ color: 'rgba(255,255,255,0.75)', mb: 1, letterSpacing: 2, textTransform: 'uppercase', fontSize: '0.85rem' }}
                 >
-                  Hello, I&apos;m
+                  Hello, My name is I&apos;m
                 </Typography>
               </motion.div>
 
