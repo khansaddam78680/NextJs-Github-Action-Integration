@@ -69,7 +69,6 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_GIT_COMMIT_REF: ${{ github.head_ref }}
 
   print_preview_url:
     needs: [test_app, vercel_preview_deploy]
