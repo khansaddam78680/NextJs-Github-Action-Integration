@@ -1,4 +1,4 @@
-name: Preview Vercel Deploy
+﻿name: Preview Vercel Deploy
 
 on:
   pull_request:
@@ -69,6 +69,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_GIT_COMMIT_REF: ${{ github.head_ref }}
 
   print_preview_url:
     needs: [test_app, vercel_preview_deploy]
@@ -77,7 +78,7 @@ jobs:
     steps:
       - name: Generate github summary to print the vercel preview url
         run: |
-          echo "## 🚀 Preview Deployment Ready" >> $GITHUB_STEP_SUMMARY
+          echo "## ðŸš€ Preview Deployment Ready" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| | |" >> $GITHUB_STEP_SUMMARY
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
