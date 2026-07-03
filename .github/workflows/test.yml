@@ -4,6 +4,15 @@ on:
   push:
     branches: "feature/**"
     #branches-ignore: [main]
+  
+  #To manually invoke workflow from github
+  workflow_dispatch: 
+    inputs:
+      node-version:
+        required: false
+        type: string
+        default: "24"
+        description: Provide to node version to setup.
 
   #To use this workflow in different action we need to put workflow_call
   workflow_call: {}
@@ -24,7 +33,7 @@ jobs:
       - name: Setup NodeJs
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: ${{ inputs.node-version }}
           cache: npm
 
       - name: Install dependencies
@@ -72,7 +81,7 @@ jobs:
       - name: Setup NodeJs
         uses: actions/setup-node@v6
         with:
-          node-version: 24
+          node-version: ${{ inputs.node-version }}
           cache: npm
 
       - name: Install dependencies
