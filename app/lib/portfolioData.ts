@@ -1,11 +1,11 @@
 import type { SkillCategory, Project, Achievement, WorkExperience, CareerEvent, Stat } from './types';
 
 export const personalInfo = {
-  name: 'Tejas Chumbalkar',
+  name: 'Saddam Husain Khan',
   title: 'Full Stack Developer',
   email: 'johndoe@example.com',
-  github: 'https://github.com/your-github',
-  linkedin: 'https://linkedin.com/in/your-profile',
+  github: 'https://github.com/khansaddam78680',
+  linkedin: 'https://linkedin.com/in/saddam-husain-khan',
   location: 'New York, NY, USA',
   summary:
     'Experienced Full Stack Developer with expertise in modern web development, cloud technologies, database design, and DevOps practices. Passionate about building scalable applications, clean architecture, and delivering high-quality software solutions.',
