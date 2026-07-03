@@ -53,7 +53,7 @@ jobs:
         env:
           NODE_VERSION: ${{ steps.install-node.outputs.node-version }}
         run: |
-          echo "Using Node.Js version used: ${NODE_VERSION}"
+          echo "Node.Js version used: ${NODE_VERSION}"
           npm ci
 
       - name: Run TypeScript type check
