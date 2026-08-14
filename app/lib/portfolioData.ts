@@ -1,7 +1,7 @@
 import type { SkillCategory, Project, Achievement, WorkExperience, CareerEvent, Stat } from './types';
 
 export const personalInfo = {
-  name: 'John Doe',
+  name: 'Ayaz',
   title: 'Full Stack Developer',
   email: 'johndoe@example.com',
   github: 'https://github.com/your-github',
